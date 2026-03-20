@@ -1,0 +1,588 @@
+<!doctype html>
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <title>NestJS Pro Chat (Sleep & Wake)</title>
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"></script>
+    <style>
+      body {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        padding: 20px;
+        background-color: #f4f4f9;
+      }
+      h2 {
+        color: #333;
+      }
+
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 15px;
+        background: white;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+      }
+      th,
+      td {
+        border: 1px solid #ddd;
+        padding: 12px;
+        text-align: left;
+      }
+      th {
+        background-color: #0056b3;
+        color: white;
+      }
+      tr:hover {
+        background-color: #f1f1f1;
+      }
+      a.join-btn {
+        color: #0056b3;
+        text-decoration: none;
+        font-weight: bold;
+        cursor: pointer;
+      }
+      a.join-btn:hover {
+        text-decoration: underline;
+      }
+
+      #chatSection {
+        display: none;
+        background: white;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+      }
+      #chatBox {
+        border: 1px solid #eee;
+        padding: 15px;
+        height: 350px;
+        overflow-y: scroll;
+        margin: 15px 0;
+        background: #fafafa;
+        border-radius: 4px;
+      }
+      .msg {
+        margin-bottom: 10px;
+        line-height: 1.4;
+      }
+      .time {
+        font-size: 0.75em;
+        color: #888;
+        margin-left: 5px;
+      }
+      .back-btn {
+        background: #dc3545;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        cursor: pointer;
+        border-radius: 4px;
+        font-weight: bold;
+      }
+      .send-btn {
+        background: #28a745;
+        color: white;
+        border: none;
+        padding: 8px 15px;
+        cursor: pointer;
+        border-radius: 4px;
+        font-weight: bold;
+      }
+
+      /* สไตล์ข้อความแจ้งเตือนระบบ */
+      .sys-msg {
+        text-align: center;
+        margin: 10px 0;
+        font-style: italic;
+        font-size: 0.9em;
+      }
+      .sys-sleep {
+        color: #ff9800;
+        font-weight: bold;
+      }
+      .sys-wake {
+        color: #17a2b8;
+      }
+
+      /* Modal */
+      .modal {
+        display: none;
+        position: fixed;
+        z-index: 100;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+      }
+      .modal-content {
+        background-color: white;
+        margin: 10% auto;
+        padding: 25px;
+        border-radius: 8px;
+        width: 400px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+      }
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+      }
+      .modal-header h3 {
+        margin: 0;
+        color: #0056b3;
+      }
+      .close {
+        color: #aaa;
+        font-size: 28px;
+        font-weight: bold;
+        cursor: pointer;
+      }
+      .close:hover {
+        color: #333;
+      }
+      .modal input[type='text'],
+      .modal textarea {
+        width: 100%;
+        padding: 10px;
+        margin: 8px 0;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        box-sizing: border-box;
+      }
+      .modal-actions {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+        margin-top: 15px;
+      }
+
+      .btn {
+        border: none;
+        padding: 8px 15px;
+        cursor: pointer;
+        border-radius: 4px;
+        font-weight: bold;
+      }
+      .btn-create {
+        background: #007bff;
+        color: white;
+      }
+      .btn-edit {
+        background: #ffc107;
+        color: #333;
+      }
+      .btn-delete {
+        background: #dc3545;
+        color: white;
+      }
+      .btn-cancel {
+        background: #6c757d;
+        color: white;
+      }
+      .btn:hover {
+        opacity: 0.85;
+      }
+
+      .actions-col {
+        width: 200px;
+        text-align: center;
+      }
+      .actions-col a,
+      .actions-col button {
+        margin: 0 3px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="roomListSection">
+      <h2>💬 ห้องสนทนาทั้งหมด</h2>
+      <div
+        style="
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 15px;
+        "
+      >
+        <div
+          style="
+            background: white;
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+          "
+        >
+          <label><b>ชื่อของคุณ: </b></label>
+          <input
+            type="text"
+            id="username"
+            placeholder="ใส่ชื่อผู้ใช้"
+            value="User1"
+            style="padding: 5px"
+          />
+        </div>
+        <button class="btn btn-create" onclick="openCreateModal()">
+          ➕ สร้างห้องใหม่
+        </button>
+      </div>
+
+      <table id="roomsTable">
+        <thead>
+          <tr>
+            <th>ชื่อห้อง</th>
+            <th>รายละเอียด</th>
+            <th class="actions-col">จัดการ</th>
+          </tr>
+        </thead>
+        <tbody id="roomsTableBody"></tbody>
+      </table>
+    </div>
+
+    <div id="chatSection">
+      <button class="back-btn" onclick="leaveRoom()">
+        ⬅ กลับหน้ารายชื่อห้อง
+      </button>
+      <h3 id="currentRoomName" style="margin-top: 15px; color: #0056b3">
+        กำลังโหลด...
+      </h3>
+
+      <div id="chatBox"></div>
+
+      <div style="display: flex; gap: 10px">
+        <input
+          type="text"
+          id="msgInput"
+          placeholder="พิมพ์ข้อความที่นี่..."
+          style="
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+          "
+        />
+        <button class="send-btn" onclick="sendMessage()">ส่งข้อความ 🚀</button>
+      </div>
+    </div>
+
+    <!-- Create Room Modal -->
+    <div id="createModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>➕ สร้างห้องใหม่</h3>
+          <span class="close" onclick="closeCreateModal()">&times;</span>
+        </div>
+        <input type="text" id="newRoomName" placeholder="ชื่อห้อง (必填)" />
+        <textarea
+          id="newRoomDesc"
+          placeholder="รายละเอียดห้อง (ไม่บังคับ)"
+          rows="3"
+        ></textarea>
+        <div class="modal-actions">
+          <button class="btn btn-cancel" onclick="closeCreateModal()">
+            ยกเลิก
+          </button>
+          <button class="btn btn-create" onclick="createRoom()">
+            สร้างห้อง
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Room Modal -->
+    <div id="editModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>✏️ แก้ไขห้อง</h3>
+          <span class="close" onclick="closeEditModal()">&times;</span>
+        </div>
+        <input type="hidden" id="editRoomId" />
+        <input type="text" id="editRoomName" placeholder="ชื่อห้อง (必填)" />
+        <textarea
+          id="editRoomDesc"
+          placeholder="รายละเอียดห้อง (ไม่บังคับ)"
+          rows="3"
+        ></textarea>
+        <div class="modal-actions">
+          <button class="btn btn-cancel" onclick="closeEditModal()">
+            ยกเลิก
+          </button>
+          <button class="btn btn-create" onclick="updateRoom()">บันทึก</button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Configuration - Update API_HOST to match your server
+      const API_HOST = (() => {
+        const saved = sessionStorage.getItem('api_host');
+        return saved || 'http://localhost:3000';
+      })();
+
+      function setApiHost(host) {
+        sessionStorage.setItem('api_host', host);
+        location.reload();
+      }
+
+      const socket = io(API_HOST);
+      let currentRoomId = '';
+      let currentRoomName = '';
+      const chatBox = document.getElementById('chatBox');
+      const REST_API_URL = `${API_HOST}/room`;
+
+      // --- 1. Room CRUD Functions ---
+      async function fetchRooms() {
+        try {
+          const response = await fetch(REST_API_URL);
+          const rooms = await response.json();
+          const tbody = document.getElementById('roomsTableBody');
+          tbody.innerHTML = '';
+
+          if (rooms.length === 0) {
+            tbody.innerHTML =
+              '<tr><td colspan="3" style="text-align:center;">ยังไม่มีห้องแชท</td></tr>';
+            return;
+          }
+
+          rooms.forEach((room) => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                        <td><strong>${escapeHtml(room.name)}</strong></td>
+                        <td>${escapeHtml(room.description) || '-'}</td>
+                        <td class="actions-col">
+                            <a class="join-btn" onclick="joinRoom('${room._id}', '${escapeHtml(room.name)}')">💬</a>
+                            <button class="btn btn-edit" onclick="openEditModal('${room._id}', '${escapeHtml(room.name)}', '${escapeHtml(room.description || '')}')">✏️</button>
+                            <button class="btn btn-delete" onclick="deleteRoom('${room._id}')">🗑️</button>
+                        </td>
+                    `;
+            tbody.appendChild(tr);
+          });
+        } catch (error) {
+          console.error('Error:', error);
+        }
+      }
+
+      // Create Room
+      function openCreateModal() {
+        document.getElementById('newRoomName').value = '';
+        document.getElementById('newRoomDesc').value = '';
+        document.getElementById('createModal').style.display = 'block';
+      }
+
+      function closeCreateModal() {
+        document.getElementById('createModal').style.display = 'none';
+      }
+
+      async function createRoom() {
+        const name = document.getElementById('newRoomName').value.trim();
+        const description = document.getElementById('newRoomDesc').value.trim();
+
+        if (!name) {
+          alert('กรุณาใส่ชื่อห้อง');
+          return;
+        }
+
+        try {
+          const response = await fetch(REST_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, description }),
+          });
+
+          if (response.ok) {
+            closeCreateModal();
+            fetchRooms();
+          } else {
+            alert('สร้างห้องไม่สำเร็จ');
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          alert('เกิดข้อผิดพลาด');
+        }
+      }
+
+      // Edit Room
+      function openEditModal(id, name, description) {
+        document.getElementById('editRoomId').value = id;
+        document.getElementById('editRoomName').value = name;
+        document.getElementById('editRoomDesc').value = description;
+        document.getElementById('editModal').style.display = 'block';
+      }
+
+      function closeEditModal() {
+        document.getElementById('editModal').style.display = 'none';
+      }
+
+      async function updateRoom() {
+        const id = document.getElementById('editRoomId').value;
+        const name = document.getElementById('editRoomName').value.trim();
+        const description = document
+          .getElementById('editRoomDesc')
+          .value.trim();
+
+        if (!name) {
+          alert('กรุณาใส่ชื่อห้อง');
+          return;
+        }
+
+        try {
+          const response = await fetch(`${REST_API_URL}/${id}`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name, description }),
+          });
+
+          if (response.ok) {
+            closeEditModal();
+            fetchRooms();
+          } else {
+            alert('แก้ไขห้องไม่สำเร็จ');
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          alert('เกิดข้อผิดพลาด');
+        }
+      }
+
+      // Delete Room
+      async function deleteRoom(id) {
+        if (!confirm('ต้องการลบห้องนี้หรือไม่?')) return;
+
+        try {
+          const response = await fetch(`${REST_API_URL}/${id}`, {
+            method: 'DELETE',
+          });
+
+          if (response.ok) {
+            fetchRooms();
+          } else {
+            alert('ลบห้องไม่สำเร็จ');
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          alert('เกิดข้อผิดพลาด');
+        }
+      }
+
+      // Escape HTML to prevent XSS
+      function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      // --- 2. Chat Functions ---
+      function joinRoom(roomId, roomName) {
+        const username = document.getElementById('username').value.trim();
+        if (!username) return alert('กรุณาใส่ชื่อของคุณก่อนเข้าห้อง');
+
+        document.getElementById('roomListSection').style.display = 'none';
+        document.getElementById('chatSection').style.display = 'block';
+        document.getElementById('currentRoomName').innerText =
+          `ห้อง: ${roomName}`;
+        chatBox.innerHTML = '';
+
+        currentRoomId = roomId;
+        currentRoomName = roomName;
+        socket.emit('joinRoom', roomId);
+
+        window.history.pushState({ room: roomId }, '', `?room=${roomId}`);
+      }
+
+      function leaveRoom() {
+        document.getElementById('chatSection').style.display = 'none';
+        document.getElementById('roomListSection').style.display = 'block';
+        currentRoomId = '';
+        currentRoomName = '';
+        fetchRooms();
+        window.history.pushState({}, '', window.location.pathname);
+      }
+
+      function appendMessage(sender, text, timestamp) {
+        const timeStr = timestamp
+          ? new Date(timestamp).toLocaleTimeString('th-TH')
+          : '';
+        chatBox.innerHTML += `<div class="msg"><b>${escapeHtml(sender)}:</b> ${escapeHtml(text)} <span class="time">${timeStr ? `(${timeStr})` : ''}</span></div>`;
+        chatBox.scrollTop = chatBox.scrollHeight;
+      }
+
+      function sendMessage() {
+        const text = document.getElementById('msgInput').value.trim();
+        const sender = document.getElementById('username').value;
+
+        if (!currentRoomId || !text) return;
+
+        if (!socket.connected) {
+          chatBox.innerHTML += `<div class="sys-msg sys-wake">กำลังปลุกระบบเพื่อส่งข้อความ... 🔌</div>`;
+          chatBox.scrollTop = chatBox.scrollHeight;
+
+          socket.connect();
+
+          socket.once('connect', () => {
+            chatBox.innerHTML = '';
+            socket.emit('joinRoom', currentRoomId);
+
+            socket.once('joinedRoom', () => {
+              socket.emit('chatToServer', {
+                sender,
+                roomId: currentRoomId,
+                text,
+              });
+            });
+          });
+        } else {
+          socket.emit('chatToServer', { sender, roomId: currentRoomId, text });
+        }
+
+        document.getElementById('msgInput').value = '';
+      }
+
+      // --- 3. WebSocket Events ---
+      socket.on('joinedRoom', (roomId) => {
+        chatBox.innerHTML += `<div class="sys-msg" style="color: #28a745;">--- เชื่อมต่อห้องสำเร็จ ---</div>`;
+      });
+
+      socket.on('loadOldMessages', (messages) => {
+        if (messages && messages.length > 0) {
+          messages.forEach((msg) =>
+            appendMessage(msg.sender, msg.text, msg.createdAt),
+          );
+        }
+      });
+
+      socket.on('chatToClient', (msg) => {
+        appendMessage(msg.sender, msg.text, msg.createdAt);
+      });
+
+      socket.on('forceDisconnect', (reason) => {
+        chatBox.innerHTML += `<div class="sys-msg sys-sleep">💤 ระบบเข้าสู่โหมดประหยัดพลังงาน (พิมพ์แชทเพื่อปลุกอัตโนมัติ)</div>`;
+        chatBox.scrollTop = chatBox.scrollHeight;
+      });
+
+      socket.on('disconnect', () => {
+        console.log('❌ Socket disconnected');
+      });
+
+      // Close modals when clicking outside
+      window.onclick = function (event) {
+        if (event.target.classList.contains('modal')) {
+          closeCreateModal();
+          closeEditModal();
+        }
+      };
+
+      // Handle Enter key in modals
+      document.getElementById('newRoomName').addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') createRoom();
+      });
+      document.getElementById('editRoomName').addEventListener('keyup', (e) => {
+        if (e.key === 'Enter') updateRoom();
+      });
+
+      // Initial load
+      fetchRooms();
+    </script>
+  </body>
+</html>

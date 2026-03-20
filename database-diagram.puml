@@ -1,0 +1,25 @@
+@startuml
+!theme plain
+
+entity "rooms" as rooms {
+  * _id : ObjectId <<PK>>
+  * name : string
+  --
+  description : string
+  createdAt : Date
+  updatedAt : Date
+}
+
+entity "messages" as messages {
+  * _id : ObjectId <<PK>>
+  * sender : string
+  * text : string
+  * roomId : ObjectId <<FK>>
+  --
+  createdAt : Date
+  updatedAt : Date
+}
+
+rooms ||--o{ messages : "has many"
+
+@enduml

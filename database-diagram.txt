@@ -1,0 +1,20 @@
+// Database Diagram - NestJS WebSocket Chat App
+// Paste this into diagramdb.io
+
+# rooms
+- _id: ObjectId [pk]
+- name: string [required]
+- description: string [optional]
+- createdAt: Date
+- updatedAt: Date
+
+# messages
+- _id: ObjectId [pk]
+- sender: string [required]
+- text: string [required]
+- roomId: ObjectId [required, ref: rooms._id]
+- createdAt: Date
+- updatedAt: Date
+
+// Relationships
+rooms._id 1──∞ messages.roomId
