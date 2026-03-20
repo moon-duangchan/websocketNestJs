@@ -26,6 +26,7 @@ cp .env.example .env
 
 # 3. Start MongoDB with Docker
 docker-compose up -d
+docker compose up -d 
 
 # 4. Start the application
 npm run start:dev
@@ -75,22 +76,12 @@ MONGODB_URI=mongodb://localhost:27017/chat-db
 # Development mode (with hot reload)
 npm run start:dev
 
-# Production build
-npm run build
-
-# Production run
-npm run start:prod
-
-# Run tests
-npm run test
-```
-
 ## Database
 
 Uses MongoDB with Mongoose. Collections:
 - **rooms** - Chat rooms (name, description)
 - **messages** - Messages (sender, text, roomId)
-
+![db](.db.png)
 ## Tech Stack
 
 - NestJS
