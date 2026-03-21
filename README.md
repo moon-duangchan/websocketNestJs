@@ -80,12 +80,11 @@ npm run start:dev
 
 ## Database
 
+![ภาพขึ้นยัง](./img/db.png)
+
 Uses MongoDB with Mongoose. Collections:
 - **rooms** - Chat rooms (name, description)
 - **messages** - Messages (sender, text, roomId)
-
-
-![ภาพขึ้นยัง](./db.png)
 
 ## Tech Stack
 
