@@ -1,3 +1,4 @@
+
 # NestJS WebSocket Chat App
 
 Real-time chat application with NestJS, WebSocket (Socket.IO), and MongoDB (Mongoose).
@@ -6,13 +7,13 @@ Real-time chat application with NestJS, WebSocket (Socket.IO), and MongoDB (Mong
 
 - Real-time messaging with WebSocket
 - Room-based chat (create, edit, delete rooms)
-- Sleep/Wake system (auto-disconnect after 20s inactivity)
+- Sleep/Wake system (auto-disconnect after 20s inactivity) **
 - REST API for room management
 - MongoDB for data persistence
 
 ## Prerequisites
 
-- Node.js >= 18.x
+- Node.js
 - Docker (for MongoDB)
 
 ## Installation
@@ -25,7 +26,8 @@ npm install
 cp .env.example .env
 
 # 3. Start MongoDB with Docker
-docker-compose up -d
+docker-compose up -d   
+or
 docker compose up -d 
 
 # 4. Start the application
@@ -65,7 +67,7 @@ MONGODB_URI=mongodb://localhost:27017/chat-db
 
 ## Usage
 
-1. Open `index.html` in browser (or serve it via NestJS static files)
+1. Open `index.html` in browser (or serve it via NestJS static files) or use `bun ./index.html`
 2. Enter your username
 3. Create or join a chat room
 4. Start chatting!
