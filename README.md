@@ -72,9 +72,10 @@ MONGODB_URI=mongodb://localhost:27017/chat-db
 3. Create or join a chat room
 4. Start chatting!
 
+
 ## Development
 
-```bash
+
 # Development mode (with hot reload)
 npm run start:dev
 
