@@ -83,7 +83,10 @@ npm run start:dev
 Uses MongoDB with Mongoose. Collections:
 - **rooms** - Chat rooms (name, description)
 - **messages** - Messages (sender, text, roomId)
+
+
 ![ภาพขึ้นยัง](./db.png)
+
 ## Tech Stack
 
 - NestJS
