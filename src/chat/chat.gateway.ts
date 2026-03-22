@@ -12,7 +12,10 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Server, Socket } from 'socket.io';
 import { Model } from 'mongoose';
 import { Message, MessageDocument } from './schemas/message.schema';
+
 @WebSocketGateway({ cors: true })
+
+
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server;
   private logger: Logger = new Logger('ChatGateway');
